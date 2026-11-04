@@ -35,7 +35,9 @@ class TodayTasksView extends StatelessWidget {
       itemBuilder: (context, index) {
         final task = tasks[index];
         return TaskCard(
+          key: ValueKey('today_${task.id}'),
           task: task,
+          index: index,
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -60,4 +62,3 @@ class TodayTasksView extends StatelessWidget {
     );
   }
 }
-

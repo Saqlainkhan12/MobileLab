@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../models/task.dart';
 import '../models/subtask.dart';
 import '../models/repeat_config.dart';
@@ -228,7 +229,7 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
                 }
                 return null;
               },
-            ),
+            ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.1, end: 0),
             const SizedBox(height: 16),
 
             // Description Input
@@ -242,14 +243,14 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
               ),
               maxLines: 3,
               textCapitalization: TextCapitalization.sentences,
-            ),
+            ).animate().fadeIn(delay: 50.ms, duration: 300.ms).slideY(begin: 0.1, end: 0),
             const SizedBox(height: 20),
 
             // Due Date & Time Section
             Text(
               'Due Date & Time',
               style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
+            ).animate().fadeIn(delay: 100.ms),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -283,7 +284,7 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
                   ),
                 ),
               ],
-            ),
+            ).animate().fadeIn(delay: 120.ms, duration: 300.ms).slideY(begin: 0.1, end: 0),
             const SizedBox(height: 20),
 
             // Repeat Settings Section
@@ -300,7 +301,7 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
                   label: const Text('Configure'),
                 ),
               ],
-            ),
+            ).animate().fadeIn(delay: 150.ms),
             InkWell(
               onTap: _configureRepeat,
               borderRadius: BorderRadius.circular(12),
@@ -339,14 +340,14 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
                   ],
                 ),
               ),
-            ),
+            ).animate().fadeIn(delay: 170.ms, duration: 300.ms).slideY(begin: 0.1, end: 0),
             const SizedBox(height: 20),
 
             // Priority Selector
             Text(
               'Priority',
               style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
+            ).animate().fadeIn(delay: 200.ms),
             const SizedBox(height: 8),
             Row(
               children: TaskPriority.values.map((priority) {
@@ -395,14 +396,14 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
                   ),
                 );
               }).toList(),
-            ),
+            ).animate().fadeIn(delay: 220.ms, duration: 300.ms).slideY(begin: 0.1, end: 0),
             const SizedBox(height: 20),
 
             // Category Selector
             Text(
               'Category',
               style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
+            ).animate().fadeIn(delay: 240.ms),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -432,7 +433,7 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
                   },
                 );
               }).toList(),
-            ),
+            ).animate().fadeIn(delay: 260.ms, duration: 300.ms).slideY(begin: 0.1, end: 0),
             const SizedBox(height: 24),
 
             // Subtasks Section (Progress Tracking)
@@ -441,7 +442,7 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
               onToggle: _toggleSubtask,
               onDelete: _deleteSubtask,
               isEditable: true,
-            ),
+            ).animate().fadeIn(delay: 280.ms, duration: 300.ms),
             const SizedBox(height: 8),
 
             // Add Subtask input row
@@ -466,7 +467,7 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
                   tooltip: 'Add Subtask',
                 ),
               ],
-            ),
+            ).animate().fadeIn(delay: 300.ms),
             const SizedBox(height: 32),
 
             // Submit Button
@@ -481,7 +482,7 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
-            ),
+            ).animate().fadeIn(delay: 320.ms).scale(duration: 250.ms),
             const SizedBox(height: 24),
           ],
         ),

@@ -207,7 +207,7 @@ class _ExportScreenState extends State<ExportScreen> {
                     label: const Text('Share PDF'),
                   ),
                 ],
-              ),
+              ).animate().fadeIn(delay: 100.ms, duration: 350.ms).slideX(begin: 0.08, end: 0),
               const SizedBox(height: 16),
 
               // 2. CSV Export Card
@@ -225,7 +225,7 @@ class _ExportScreenState extends State<ExportScreen> {
                     style: FilledButton.styleFrom(backgroundColor: Colors.green.shade700),
                   ),
                 ],
-              ),
+              ).animate().fadeIn(delay: 200.ms, duration: 350.ms).slideX(begin: 0.08, end: 0),
               const SizedBox(height: 16),
 
               // 3. Email Export Card
@@ -256,7 +256,7 @@ class _ExportScreenState extends State<ExportScreen> {
                     label: const Text('Send Email Summary'),
                   ),
                 ],
-              ),
+              ).animate().fadeIn(delay: 300.ms, duration: 350.ms).slideX(begin: 0.08, end: 0),
               const SizedBox(height: 32),
             ],
           ),

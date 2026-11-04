@@ -35,9 +35,13 @@ class AllTasksView extends StatelessWidget {
             onAction: onAddTask,
           )
         else
-          ...tasks.map((task) {
+          ...tasks.asMap().entries.map((entry) {
+            final index = entry.key;
+            final task = entry.value;
             return TaskCard(
+              key: ValueKey('all_${task.id}'),
               task: task,
+              index: index,
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -63,4 +67,3 @@ class AllTasksView extends StatelessWidget {
     );
   }
 }
-

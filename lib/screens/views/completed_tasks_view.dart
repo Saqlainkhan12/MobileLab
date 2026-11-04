@@ -31,7 +31,9 @@ class CompletedTasksView extends StatelessWidget {
       itemBuilder: (context, index) {
         final task = tasks[index];
         return TaskCard(
+          key: ValueKey('completed_${task.id}'),
           task: task,
+          index: index,
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -56,4 +58,3 @@ class CompletedTasksView extends StatelessWidget {
     );
   }
 }
-
