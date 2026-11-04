@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
+import '../providers/task_provider.dart';
 import '../services/notification_service.dart';
 import '../theme/app_theme.dart';
 
@@ -233,22 +234,38 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 12),
           Card(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            child: const Padding(
-              padding: EdgeInsets.all(16.0),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
-                  ListTile(
+                  const ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: Icon(Icons.verified_rounded, color: Colors.blue),
                     title: Text('TaskFlow Mobile Lab App'),
                     subtitle: Text('Version 1.0.0 • Flutter + SQLite Architecture'),
                   ),
-                  Divider(),
-                  ListTile(
+                  const Divider(),
+                  const ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: Icon(Icons.storage_rounded, color: Colors.teal),
                     title: Text('Storage Engine'),
                     subtitle: Text('SQLite Persistent Relational Database'),
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        await context.read<TaskProvider>().loadSampleData();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Sample tasks loaded! Check Today, Repeated & Completed tabs.')),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.auto_awesome_rounded, color: Colors.amber),
+                      label: const Text('Load Demo / Sample Tasks'),
+                    ),
                   ),
                 ],
               ),

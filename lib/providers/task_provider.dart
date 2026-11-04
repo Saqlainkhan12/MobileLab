@@ -118,6 +118,70 @@ class TaskProvider with ChangeNotifier {
 
   // ==================== CRUD OPERATIONS ====================
 
+  Future<void> loadSampleData() async {
+    final now = DateTime.now();
+
+    final sample1 = Task(
+      title: 'Complete Mobile Lab Assignment',
+      description: 'Implement Flutter UI, SQLite Database, and Notification System.',
+      dueDate: DateTime(now.year, now.month, now.day, 20, 0),
+      priority: TaskPriority.high,
+      category: 'Study',
+      subtasks: [
+        Subtask(title: 'Set up Flutter & SQLite Database', isCompleted: true),
+        Subtask(title: 'Implement Task Management CRUD', isCompleted: true),
+        Subtask(title: 'Add Repeat & Progress Tracking', isCompleted: true),
+        Subtask(title: 'Export to PDF, CSV & Email', isCompleted: false),
+      ],
+    );
+
+    final sample2 = Task(
+      title: 'Morning Fitness Routine',
+      description: 'Daily morning exercise and stretching session.',
+      dueDate: DateTime(now.year, now.month, now.day, 7, 30),
+      priority: TaskPriority.medium,
+      category: 'Health',
+      repeatConfig: const RepeatConfig(type: RepeatType.daily),
+      subtasks: [
+        Subtask(title: '15 min cardio warmup', isCompleted: true),
+        Subtask(title: 'Core workouts & pushups', isCompleted: false),
+        Subtask(title: 'Cool down & hydration', isCompleted: false),
+      ],
+    );
+
+    final sample3 = Task(
+      title: 'Team Project Status Meeting',
+      description: 'Weekly team sync on Mon, Wed, Fri.',
+      dueDate: DateTime(now.year, now.month, now.day, 14, 0),
+      priority: TaskPriority.medium,
+      category: 'Work',
+      repeatConfig: const RepeatConfig(type: RepeatType.weekly, selectedDays: [1, 3, 5]),
+      subtasks: [
+        Subtask(title: 'Prepare progress slides', isCompleted: false),
+        Subtask(title: 'Review submitted PRs', isCompleted: false),
+      ],
+    );
+
+    final sample4 = Task(
+      title: 'Submit Project APK & Documentation',
+      description: 'Submitted all code, README guide, and debug APK.',
+      dueDate: DateTime(now.year, now.month, now.day, 18, 0),
+      priority: TaskPriority.high,
+      category: 'Study',
+      isCompleted: true,
+      completedAt: now,
+      subtasks: [
+        Subtask(title: 'Build debug APK', isCompleted: true),
+        Subtask(title: 'Prepare video demonstration guide', isCompleted: true),
+      ],
+    );
+
+    await addTask(sample1);
+    await addTask(sample2);
+    await addTask(sample3);
+    await addTask(sample4);
+  }
+
   Future<int> addTask(Task task, {String sound = 'default', int reminderMinutes = 0}) async {
     try {
       final id = await _dbHelper.insertTask(task);
