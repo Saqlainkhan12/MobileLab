@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../models/task.dart';
+import '../providers/settings_provider.dart';
 import '../providers/task_provider.dart';
 import '../services/notification_service.dart';
+import '../theme/app_theme.dart';
 import 'add_edit_task_screen.dart';
-import 'export_screen.dart';
 import 'settings_screen.dart';
 import 'views/today_tasks_view.dart';
 import 'views/completed_tasks_view.dart';
@@ -56,6 +57,123 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       MaterialPageRoute(
         builder: (_) => const AddEditTaskScreen(),
       ),
+    );
+  }
+
+  void _showColorPickerModal(BuildContext context) {
+    final settings = context.read<SettingsProvider>();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppTheme.palettes[settings.accentColorIndex.clamp(0, AppTheme.palettes.length - 1)].primary,
+                          AppTheme.palettes[settings.accentColorIndex.clamp(0, AppTheme.palettes.length - 1)].secondary,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.palette_rounded, color: Colors.white, size: 18),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    "Saqlain's Color Theme",
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Switch vibrant executive color palettes across TaskFlow:',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: AppTheme.palettes.asMap().entries.map((entry) {
+                  final idx = entry.key;
+                  final pal = entry.value;
+                  final isSelected = settings.accentColorIndex == idx;
+
+                  return GestureDetector(
+                    onTap: () {
+                      settings.setAccentColorIndex(idx);
+                      Navigator.pop(ctx);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? pal.primary.withValues(alpha: isDark ? 0.28 : 0.15)
+                            : isDark
+                                ? const Color(0xFF1E293B)
+                                : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected ? pal.primary : Colors.transparent,
+                          width: 2,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(colors: [pal.primary, pal.secondary]),
+                              border: Border.all(color: Colors.white, width: 1.5),
+                            ),
+                            child: isSelected
+                                ? const Icon(Icons.check, size: 14, color: Colors.white)
+                                : null,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            pal.name,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                              color: isSelected ? pal.primary : (isDark ? Colors.white : Colors.black87),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 14),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -207,21 +325,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             : Row(
                 children: [
                   Container(
-                    width: 36,
-                    height: 36,
+                    width: 38,
+                    height: 38,
                     padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(11),
+                      borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: primary.withValues(alpha: 0.4),
+                          color: primary.withValues(alpha: 0.45),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
                       ],
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(9),
+                      borderRadius: BorderRadius.circular(10),
                       child: Image.asset(
                         'assets/images/app_logo.png',
                         fit: BoxFit.cover,
@@ -263,12 +381,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         ],
                       ),
                       Text(
-                        'Next-Gen Productivity',
+                        "Saqlain's Command Studio",
                         style: TextStyle(
                           fontSize: 9.5,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.5,
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
                         ),
                       ),
                     ],
@@ -276,12 +394,73 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ],
               ),
         actions: [
-          if (!_isSearching)
+          if (!_isSearching) ...[
+            // Quick Theme Palette Switcher
+            IconButton(
+              icon: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      primary,
+                      theme.colorScheme.secondary,
+                    ],
+                  ),
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primary.withValues(alpha: 0.5),
+                      blurRadius: 6,
+                    ),
+                  ],
+                ),
+              ),
+              tooltip: 'Color Palette',
+              onPressed: () => _showColorPickerModal(context),
+            ),
+            // Instant Heads-Up Notification Tester
+            IconButton(
+              icon: const Icon(Icons.notifications_active_outlined),
+              tooltip: 'Test Alert Notification',
+              onPressed: () async {
+                await NotificationService.instance.showInstantNotification(
+                  title: 'TaskFlow Active',
+                  body: 'Salam Saqlain! Heads-up reminder notifications are active!',
+                );
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    behavior: SnackBarBehavior.floating,
+                    backgroundColor: primary,
+                    content: const Text('📌 Notification sent! Check your top notification bar.'),
+                  ),
+                );
+              },
+            ),
+            // Light / Dark Mode Toggle
+            IconButton(
+              icon: Icon(
+                theme.brightness == Brightness.dark
+                    ? Icons.light_mode_rounded
+                    : Icons.dark_mode_rounded,
+              ),
+              tooltip: theme.brightness == Brightness.dark ? 'Light Mode' : 'Dark Mode',
+              onPressed: () {
+                final sp = context.read<SettingsProvider>();
+                final next = theme.brightness == Brightness.dark
+                    ? ThemeMode.light
+                    : ThemeMode.dark;
+                sp.setThemeMode(next);
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.search_rounded),
               tooltip: 'Search',
               onPressed: () => setState(() => _isSearching = true),
             ),
+          ],
           IconButton(
             icon: Badge(
               isLabelVisible: hasActiveFilter,
@@ -290,15 +469,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
             tooltip: 'Filter',
             onPressed: () => _showFilterModal(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.ios_share_rounded),
-            tooltip: 'Export & Share',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ExportScreen()),
-              );
-            },
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),

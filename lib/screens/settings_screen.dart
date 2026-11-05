@@ -431,7 +431,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                   ),
-                  title: const Text('TaskFlow Mobile Lab App', style: TextStyle(fontWeight: FontWeight.bold)),
+                  title: const Text("TaskFlow • Saqlain's Workspace", style: TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: const Text('Version 1.0.0 • Flutter + SQLite Architecture'),
                 ),
                 const Divider(),

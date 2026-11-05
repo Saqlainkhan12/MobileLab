@@ -18,22 +18,22 @@ class AccentPalette {
 class AppTheme {
   static const List<AccentPalette> palettes = [
     AccentPalette(
+      name: 'Emerald Jade',
+      primary: Color(0xFF10B981),
+      secondary: Color(0xFF059669),
+      tertiary: Color(0xFF34D399),
+    ),
+    AccentPalette(
+      name: 'Sunset Amber',
+      primary: Color(0xFFF59E0B),
+      secondary: Color(0xFFD97706),
+      tertiary: Color(0xFFFBBF24),
+    ),
+    AccentPalette(
       name: 'Indigo Royal',
       primary: Color(0xFF4F46E5),
       secondary: Color(0xFF7C3AED),
       tertiary: Color(0xFF6366F1),
-    ),
-    AccentPalette(
-      name: 'Emerald Mint',
-      primary: Color(0xFF059669),
-      secondary: Color(0xFF0D9488),
-      tertiary: Color(0xFF10B981),
-    ),
-    AccentPalette(
-      name: 'Sunset Rose',
-      primary: Color(0xFFE11D48),
-      secondary: Color(0xFFEA580C),
-      tertiary: Color(0xFFF43F5E),
     ),
     AccentPalette(
       name: 'Ocean Cyan',
@@ -46,6 +46,12 @@ class AppTheme {
       primary: Color(0xFF9333EA),
       secondary: Color(0xFFC026D3),
       tertiary: Color(0xFFA855F7),
+    ),
+    AccentPalette(
+      name: 'Sunset Rose',
+      primary: Color(0xFFE11D48),
+      secondary: Color(0xFFEA580C),
+      tertiary: Color(0xFFF43F5E),
     ),
   ];
 
