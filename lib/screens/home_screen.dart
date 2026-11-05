@@ -207,24 +207,34 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             : Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(7),
+                    width: 36,
+                    height: 36,
+                    padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [primary, theme.colorScheme.secondary],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(11),
                       boxShadow: [
                         BoxShadow(
-                          color: primary.withValues(alpha: 0.35),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                          color: primary.withValues(alpha: 0.4),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.task_alt_rounded, color: Colors.white, size: 20),
-                  ).animate().scale(duration: 350.ms, curve: Curves.easeOutBack),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(9),
+                      child: Image.asset(
+                        'assets/images/app_logo.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: primary,
+                          child: const Icon(Icons.task_alt_rounded, color: Colors.white, size: 20),
+                        ),
+                      ),
+                    ),
+                  )
+                      .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                      .shimmer(duration: 2500.ms, color: Colors.white.withValues(alpha: 0.35))
+                      .scale(begin: const Offset(0.97, 0.97), end: const Offset(1.03, 1.03), duration: 2000.ms),
                   const SizedBox(width: 10),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,12 +263,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         ],
                       ),
                       Text(
-                        'Mobile Lab App',
+                        'Next-Gen Productivity',
                         style: TextStyle(
                           fontSize: 9.5,
                           fontWeight: FontWeight.w600,
-                          letterSpacing: 0.4,
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                          letterSpacing: 0.5,
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
                         ),
                       ),
                     ],
@@ -414,12 +424,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
       floatingActionButton: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: primary.withValues(alpha: 0.4),
-              blurRadius: 14,
-              offset: const Offset(0, 5),
+              color: primary.withValues(alpha: 0.45),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
@@ -430,7 +440,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           icon: const Icon(Icons.add_rounded, size: 24),
           label: const Text('New Task', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
-      ).animate().scale(duration: 350.ms, curve: Curves.easeOutBack),
+      )
+          .animate(onPlay: (controller) => controller.repeat(reverse: true))
+          .scale(
+            begin: const Offset(1.0, 1.0),
+            end: const Offset(1.03, 1.03),
+            duration: 1800.ms,
+            curve: Curves.easeInOut,
+          ),
     );
   }
 

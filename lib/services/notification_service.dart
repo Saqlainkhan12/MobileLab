@@ -192,8 +192,24 @@ class NotificationService {
       final scheduledTarget = task.dueDate.subtract(Duration(minutes: minutesBefore));
       final now = DateTime.now();
 
-      // Don't schedule tasks that are already in the past
+      String bodyText = task.description?.isNotEmpty == true
+          ? task.description!
+          : 'Task deadline is due now!';
+
+      if (task.subtasks.isNotEmpty) {
+        bodyText += ' (${task.completedSubtaskCount}/${task.subtasks.length} subtasks done)';
+      }
+
+      // If scheduled time is in the past:
+      // If it was scheduled for within the last 90 seconds (e.g. current minute), trigger immediately!
       if (scheduledTarget.isBefore(now)) {
+        if (now.difference(scheduledTarget).inSeconds < 90) {
+          await showInstantNotification(
+            title: '📌 Task Reminder: ${task.title}',
+            body: bodyText,
+            sound: sound,
+          );
+        }
         return;
       }
 
@@ -207,14 +223,6 @@ class NotificationService {
         scheduledTarget.minute,
         scheduledTarget.second,
       );
-
-      String bodyText = task.description?.isNotEmpty == true
-          ? task.description!
-          : 'Task deadline is due now!';
-
-      if (task.subtasks.isNotEmpty) {
-        bodyText += ' (${task.completedSubtaskCount}/${task.subtasks.length} subtasks done)';
-      }
 
       final details = _getNotificationDetails(
         soundName: sound,

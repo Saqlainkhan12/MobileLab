@@ -132,7 +132,7 @@ class TaskCard extends StatelessWidget {
                           width: 26,
                           height: 26,
                           decoration: BoxDecoration(
-                            shape: BoxShape.circle,
+                            borderRadius: BorderRadius.circular(8),
                             color: task.isCompleted ? Colors.green : Colors.transparent,
                             border: Border.all(
                               color: task.isCompleted
@@ -140,9 +140,18 @@ class TaskCard extends StatelessWidget {
                                   : primary.withValues(alpha: 0.6),
                               width: 2,
                             ),
+                            boxShadow: task.isCompleted
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.green.withValues(alpha: 0.35),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
                           ),
                           child: task.isCompleted
-                              ? const Icon(Icons.check, size: 16, color: Colors.white)
+                              ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
                                   .animate()
                                   .scale(duration: 250.ms, curve: Curves.easeOutBack)
                               : null,

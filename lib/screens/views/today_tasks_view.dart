@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/task_provider.dart';
 import '../../widgets/task_card.dart';
 import '../../widgets/animated_empty_state.dart';
+import '../../widgets/stats_overview_card.dart';
 import '../task_detail_screen.dart';
 
 class TodayTasksView extends StatelessWidget {
@@ -19,46 +20,48 @@ class TodayTasksView extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (tasks.isEmpty) {
-      return AnimatedEmptyState(
-        icon: Icons.wb_sunny_rounded,
-        title: 'No Tasks for Today!',
-        subtitle: 'You are all caught up for today. Add a new task to stay organized.',
-        actionLabel: 'Add Task for Today',
-        onAction: onAddTask,
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 8, bottom: 80),
-      itemCount: tasks.length,
-      itemBuilder: (context, index) {
-        final task = tasks[index];
-        return TaskCard(
-          key: ValueKey('today_${task.id}'),
-          task: task,
-          index: index,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => TaskDetailScreen(taskId: task.id!),
-              ),
+    return ListView(
+      padding: const EdgeInsets.only(top: 6, bottom: 80),
+      children: [
+        const StatsOverviewCard(),
+        if (tasks.isEmpty)
+          AnimatedEmptyState(
+            icon: Icons.wb_sunny_rounded,
+            title: 'No Tasks for Today!',
+            subtitle: 'You are all caught up for today. Add a new task to stay organized.',
+            actionLabel: 'Add Task for Today',
+            onAction: onAddTask,
+          )
+        else
+          ...tasks.asMap().entries.map((entry) {
+            final index = entry.key;
+            final task = entry.value;
+            return TaskCard(
+              key: ValueKey('today_${task.id}'),
+              task: task,
+              index: index,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => TaskDetailScreen(taskId: task.id!),
+                  ),
+                );
+              },
+              onDelete: () {
+                taskProvider.deleteTask(task);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Task "${task.title}" deleted'),
+                    action: SnackBarAction(
+                      label: 'Undo',
+                      onPressed: () => taskProvider.addTask(task),
+                    ),
+                  ),
+                );
+              },
             );
-          },
-          onDelete: () {
-            taskProvider.deleteTask(task);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Task "${task.title}" deleted'),
-                action: SnackBarAction(
-                  label: 'Undo',
-                  onPressed: () => taskProvider.addTask(task),
-                ),
-              ),
-            );
-          },
-        );
-      },
+          }),
+      ],
     );
   }
 }

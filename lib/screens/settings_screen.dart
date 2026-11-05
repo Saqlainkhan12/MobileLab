@@ -406,11 +406,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             child: Column(
               children: [
-                const ListTile(
+                ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.verified_rounded, color: Colors.blue, size: 28),
-                  title: Text('TaskFlow Mobile Lab App', style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('Version 1.0.0 • Flutter + SQLite Architecture'),
+                  leading: Container(
+                    width: 44,
+                    height: 44,
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: primary.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(
+                        'assets/images/app_logo.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const Icon(Icons.verified_rounded, color: Colors.blue, size: 28),
+                      ),
+                    ),
+                  ),
+                  title: const Text('TaskFlow Mobile Lab App', style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: const Text('Version 1.0.0 • Flutter + SQLite Architecture'),
                 ),
                 const Divider(),
                 const ListTile(
