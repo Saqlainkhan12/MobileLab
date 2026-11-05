@@ -7,6 +7,7 @@ import '../providers/task_provider.dart';
 import '../services/notification_service.dart';
 import '../theme/app_theme.dart';
 import 'add_edit_task_screen.dart';
+import 'export_screen.dart';
 import 'settings_screen.dart';
 import 'views/today_tasks_view.dart';
 import 'views/completed_tasks_view.dart';
@@ -40,7 +41,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Auto prompt notification permission on Android 13+
       NotificationService.instance.requestPermissions();
     });
   }
@@ -299,6 +299,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     return Scaffold(
       appBar: AppBar(
+        titleSpacing: 16,
         title: _isSearching
             ? TextField(
                 controller: _searchController,
@@ -323,7 +324,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 },
               )
             : Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Master 3D Logo
                   Container(
                     width: 38,
                     height: 38,
@@ -332,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: primary.withValues(alpha: 0.45),
+                          color: primary.withValues(alpha: 0.40),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
@@ -359,6 +362,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             'Task',
@@ -385,7 +389,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         style: TextStyle(
                           fontSize: 9.5,
                           fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
+                          letterSpacing: 0.4,
                           color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
                         ),
                       ),
@@ -395,11 +399,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               ),
         actions: [
           if (!_isSearching) ...[
-            // Quick Theme Palette Switcher
+            // 1. Quick Color Palette Icon Button
             IconButton(
+              visualDensity: VisualDensity.compact,
               icon: Container(
-                width: 24,
-                height: 24,
+                width: 22,
+                height: 22,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
@@ -411,20 +416,46 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   border: Border.all(color: Colors.white, width: 2),
                   boxShadow: [
                     BoxShadow(
-                      color: primary.withValues(alpha: 0.5),
-                      blurRadius: 6,
+                      color: primary.withValues(alpha: 0.4),
+                      blurRadius: 5,
                     ),
                   ],
                 ),
               ),
-              tooltip: 'Color Palette',
+              tooltip: 'Accent Themes',
               onPressed: () => _showColorPickerModal(context),
             ),
-            // Instant Heads-Up Notification Tester
+            // 2. Search Icon Button
             IconButton(
-              icon: const Icon(Icons.notifications_active_outlined),
-              tooltip: 'Test Alert Notification',
-              onPressed: () async {
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.search_rounded),
+              tooltip: 'Search',
+              onPressed: () => setState(() => _isSearching = true),
+            ),
+          ],
+          // 3. Filter Icon Button (with active indicator badge)
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            icon: Badge(
+              isLabelVisible: hasActiveFilter,
+              smallSize: 8,
+              child: const Icon(Icons.tune_rounded),
+            ),
+            tooltip: 'Filter',
+            onPressed: () => _showFilterModal(context),
+          ),
+          // 4. Executive Overflow Menu (Maintaining all controls neatly without crowding)
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded),
+            tooltip: 'More Options',
+            onSelected: (val) async {
+              if (val == 'theme_mode') {
+                final sp = context.read<SettingsProvider>();
+                final next = theme.brightness == Brightness.dark
+                    ? ThemeMode.light
+                    : ThemeMode.dark;
+                sp.setThemeMode(next);
+              } else if (val == 'test_notif') {
                 await NotificationService.instance.showInstantNotification(
                   title: 'TaskFlow Active',
                   body: 'Salam Saqlain! Heads-up reminder notifications are active!',
@@ -434,51 +465,69 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   SnackBar(
                     behavior: SnackBarBehavior.floating,
                     backgroundColor: primary,
-                    content: const Text('📌 Notification sent! Check your top notification bar.'),
+                    content: const Text('📌 Notification sent! Check your notification bar.'),
                   ),
                 );
-              },
-            ),
-            // Light / Dark Mode Toggle
-            IconButton(
-              icon: Icon(
-                theme.brightness == Brightness.dark
-                    ? Icons.light_mode_rounded
-                    : Icons.dark_mode_rounded,
-              ),
-              tooltip: theme.brightness == Brightness.dark ? 'Light Mode' : 'Dark Mode',
-              onPressed: () {
-                final sp = context.read<SettingsProvider>();
-                final next = theme.brightness == Brightness.dark
-                    ? ThemeMode.light
-                    : ThemeMode.dark;
-                sp.setThemeMode(next);
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.search_rounded),
-              tooltip: 'Search',
-              onPressed: () => setState(() => _isSearching = true),
-            ),
-          ],
-          IconButton(
-            icon: Badge(
-              isLabelVisible: hasActiveFilter,
-              smallSize: 8,
-              child: const Icon(Icons.tune_rounded),
-            ),
-            tooltip: 'Filter',
-            onPressed: () => _showFilterModal(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Settings',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
+              } else if (val == 'export') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ExportScreen()),
+                );
+              } else if (val == 'settings') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                );
+              }
             },
+            itemBuilder: (ctx) => [
+              PopupMenuItem(
+                value: 'theme_mode',
+                child: Row(
+                  children: [
+                    Icon(
+                      theme.brightness == Brightness.dark
+                          ? Icons.light_mode_rounded
+                          : Icons.dark_mode_rounded,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(theme.brightness == Brightness.dark ? 'Light Mode' : 'Dark Mode'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'test_notif',
+                child: Row(
+                  children: [
+                    Icon(Icons.notifications_active_outlined, size: 20, color: Colors.orange),
+                    SizedBox(width: 12),
+                    Text('Test Alert Notification'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'export',
+                child: Row(
+                  children: [
+                    Icon(Icons.ios_share_rounded, size: 20),
+                    SizedBox(width: 12),
+                    Text('Export & Backup'),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'settings',
+                child: Row(
+                  children: [
+                    Icon(Icons.settings_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Settings & Sound'),
+                  ],
+                ),
+              ),
+            ],
           ),
+          const SizedBox(width: 4),
         ],
         bottom: TabBar(
           controller: _tabController,
