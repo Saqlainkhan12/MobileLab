@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../models/task.dart';
 import '../providers/task_provider.dart';
+import '../services/notification_service.dart';
 import 'add_edit_task_screen.dart';
 import 'export_screen.dart';
 import 'settings_screen.dart';
@@ -36,6 +38,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Auto prompt notification permission on Android 13+
+      NotificationService.instance.requestPermissions();
+    });
   }
 
   @override
@@ -203,13 +209,60 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   Container(
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
-                      color: primary,
-                      borderRadius: BorderRadius.circular(10),
+                      gradient: LinearGradient(
+                        colors: [primary, theme.colorScheme.secondary],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: primary.withValues(alpha: 0.35),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child: const Icon(Icons.check_rounded, color: Colors.white, size: 20),
-                  ),
+                    child: const Icon(Icons.task_alt_rounded, color: Colors.white, size: 20),
+                  ).animate().scale(duration: 350.ms, curve: Curves.easeOutBack),
                   const SizedBox(width: 10),
-                  const Text('TaskFlow', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Task',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                              letterSpacing: -0.3,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          Text(
+                            'Flow',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                              letterSpacing: -0.3,
+                              color: primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        'Mobile Lab App',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.4,
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
         actions: [
@@ -252,6 +305,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           isScrollable: true,
           tabAlignment: TabAlignment.start,
           indicatorColor: primary,
+          indicatorWeight: 3,
           labelColor: primary,
           unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
@@ -358,11 +412,25 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openAddTaskScreen,
-        icon: const Icon(Icons.add_rounded, size: 24),
-        label: const Text('New Task', style: TextStyle(fontWeight: FontWeight.bold)),
-      ),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: primary.withValues(alpha: 0.4),
+              blurRadius: 14,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: FloatingActionButton.extended(
+          onPressed: _openAddTaskScreen,
+          elevation: 0,
+          highlightElevation: 0,
+          icon: const Icon(Icons.add_rounded, size: 24),
+          label: const Text('New Task', style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+      ).animate().scale(duration: 350.ms, curve: Curves.easeOutBack),
     );
   }
 
