@@ -22,3 +22,4 @@ class WebNotificationPlatformImpl implements WebNotificationPlatform {
 }
 
 WebNotificationPlatform getWebNotificationPlatform() => WebNotificationPlatformImpl();
+

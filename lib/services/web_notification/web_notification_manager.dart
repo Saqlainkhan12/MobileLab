@@ -19,3 +19,4 @@ class WebNotificationManager {
       _platform.showNotification(title: title, body: body, icon: icon);
   void playNotificationSound() => _platform.playNotificationSound();
 }
+

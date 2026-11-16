@@ -225,38 +225,26 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
         }
       }
     } else {
-      final rows = await taskProvider.updateTask(
+      await taskProvider.updateTask(
         task,
         sound: settings.notificationSound,
         reminderMinutes: settings.reminderMinutesBefore,
       );
-      if (rows > 0) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Color(0xFF10B981),
-              content: Row(
-                children: [
-                  Icon(Icons.check_circle_rounded, color: Colors.white),
-                  SizedBox(width: 10),
-                  Text('Task updated successfully!'),
-                ],
-              ),
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Color(0xFF10B981),
+            content: Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: Colors.white),
+                SizedBox(width: 10),
+                Text('Task updated successfully!'),
+              ],
             ),
-          );
-          Navigator.of(context).pop();
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Colors.redAccent,
-              content: Text('Failed to update task.'),
-            ),
-          );
-        }
+          ),
+        );
+        Navigator.of(context).pop();
       }
     }
   }
