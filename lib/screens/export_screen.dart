@@ -44,7 +44,7 @@ class _ExportScreenState extends State<ExportScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('CSV file saved: ${file.path.split(Platform.pathSeparator).last}'),
+            content: Text('CSV file saved: ${file.path.split(RegExp(r"[\\/]")).last}'),
             action: SnackBarAction(
               label: 'Share',
               onPressed: () => _exportService.shareFile(file, text: 'Here is my TaskFlow CSV Export.'),

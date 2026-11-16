@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -24,6 +25,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isSearching = false;
+  bool _webNotificationPromptVisible = false;
   final TextEditingController _searchController = TextEditingController();
 
   final List<String> _categories = [
@@ -40,8 +42,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      NotificationService.instance.requestPermissions();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await NotificationService.instance.initialize();
+      if (kIsWeb) {
+        final isGranted = await NotificationService.instance.isPermissionGranted();
+        if (!isGranted && mounted) {
+          setState(() => _webNotificationPromptVisible = true);
+        }
+      } else {
+        await NotificationService.instance.requestPermissions();
+      }
     });
   }
 
@@ -456,8 +466,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     : ThemeMode.dark;
                 sp.setThemeMode(next);
               } else if (val == 'test_notif') {
+                final granted = await NotificationService.instance.requestPermissions();
+                if (kIsWeb && !granted) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: Colors.amber,
+                        content: Text('⚠️ Browser notification blocked. Please allow notifications in your browser URL bar.'),
+                      ),
+                    );
+                  }
+                  return;
+                }
                 await NotificationService.instance.showInstantNotification(
-                  title: 'TaskFlow Active',
+                  title: 'TaskFlow Active 🎯',
                   body: 'Salam Saqlain! Heads-up reminder notifications are active!',
                 );
                 if (!context.mounted) return;
@@ -465,7 +488,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   SnackBar(
                     behavior: SnackBarBehavior.floating,
                     backgroundColor: primary,
-                    content: const Text('📌 Notification sent! Check your notification bar.'),
+                    content: Text(kIsWeb
+                        ? '📌 Desktop notification sent! Check your Windows notification center.'
+                        : '📌 Notification sent! Check your notification bar.'),
                   ),
                 );
               } else if (val == 'export') {
@@ -588,6 +613,64 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
       body: Column(
         children: [
+          // Web Laptop/PC Desktop Notification Banner
+          if (kIsWeb && _webNotificationPromptVisible)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: primary.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.desktop_windows_rounded, color: primary, size: 22),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Laptop / PC Notifications',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primary),
+                        ),
+                        const Text(
+                          'Enable notifications to receive task alerts on this PC/browser.',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                  FilledButton.tonal(
+                    onPressed: () async {
+                      final granted = await NotificationService.instance.requestPermissions();
+                      if (mounted) {
+                        if (granted) {
+                          setState(() => _webNotificationPromptVisible = false);
+                          await NotificationService.instance.showInstantNotification(
+                            title: 'Desktop Alerts Enabled! 🎉',
+                            body: 'TaskFlow will now alert you on this laptop/PC!',
+                          );
+                        }
+                      }
+                    },
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    child: const Text('Allow'),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => setState(() => _webNotificationPromptVisible = false),
+                  ),
+                ],
+              ),
+            ),
+
           // Filter status pill bar (if filters are active)
           if (hasActiveFilter)
             Container(

@@ -1,9 +1,12 @@
-import 'dart:io';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import '../models/task.dart';
+import 'web_notification/web_notification_manager.dart';
+
+typedef InAppNotificationCallback = void Function(String title, String body);
 
 class NotificationService {
   static final NotificationService instance = NotificationService._init();
@@ -11,7 +14,13 @@ class NotificationService {
 
   bool _isInitialized = false;
 
-  // New channel ID to force Android to register max importance & popup banner
+  // Active timers for Flutter Web scheduling
+  static final Map<int, Timer> _webTimers = {};
+
+  // Global callback for in-app heads-up alert banner
+  static InAppNotificationCallback? onInAppNotification;
+
+  // Notification channel ID for Android heads-up popup banner
   static const String channelId = 'taskflow_popup_channel_v4';
   static const String channelName = 'TaskFlow Urgent Alerts';
   static const String channelDescription = 'Popup heads-up alerts with sound and banner like WhatsApp';
@@ -20,6 +29,12 @@ class NotificationService {
 
   Future<void> initialize() async {
     if (_isInitialized) return;
+
+    if (kIsWeb) {
+      await WebNotificationManager.instance.initialize();
+      _isInitialized = true;
+      return;
+    }
 
     try {
       tz.initializeTimeZones();
@@ -65,8 +80,8 @@ class NotificationService {
         },
       );
 
-      // Create Android Notification Channel with Maximum Priority (WhatsApp-style popup)
-      if (Platform.isAndroid) {
+      // Create Android Notification Channel with Maximum Priority
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
         final androidImplementation = _notificationsPlugin
             .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
 
@@ -93,8 +108,12 @@ class NotificationService {
 
   /// Check if notification permission is currently granted
   Future<bool> isPermissionGranted() async {
+    if (kIsWeb) {
+      return await WebNotificationManager.instance.isPermissionGranted();
+    }
+
     try {
-      if (Platform.isAndroid) {
+      if (defaultTargetPlatform == TargetPlatform.android) {
         final androidImplementation = _notificationsPlugin
             .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
         final areNotificationsEnabled = await androidImplementation?.areNotificationsEnabled();
@@ -106,10 +125,14 @@ class NotificationService {
     return true;
   }
 
-  /// Request permissions with Android 13+ and exact alarm support
+  /// Request permissions with Android 13+, iOS, and Web support
   Future<bool> requestPermissions() async {
+    if (kIsWeb) {
+      return await WebNotificationManager.instance.requestPermission();
+    }
+
     try {
-      if (Platform.isAndroid) {
+      if (defaultTargetPlatform == TargetPlatform.android) {
         final androidImplementation = _notificationsPlugin
             .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
 
@@ -120,7 +143,7 @@ class NotificationService {
         } catch (_) {}
 
         return notifGranted ?? true;
-      } else if (Platform.isIOS) {
+      } else if (defaultTargetPlatform == TargetPlatform.iOS) {
         final iosImplementation = _notificationsPlugin
             .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
         final granted = await iosImplementation?.requestPermissions(
@@ -201,7 +224,7 @@ class NotificationService {
       }
 
       // If scheduled time is in the past:
-      // If it was scheduled for within the last 90 seconds (e.g. current minute), trigger immediately!
+      // If within last 90 seconds (current minute), trigger immediately!
       if (scheduledTarget.isBefore(now)) {
         if (now.difference(scheduledTarget).inSeconds < 90) {
           await showInstantNotification(
@@ -213,7 +236,24 @@ class NotificationService {
         return;
       }
 
-      // Exact wall-clock TZDateTime matching local time
+      // WEB PLATFORM SCHEDULING
+      if (kIsWeb) {
+        _webTimers[task.id!]?.cancel();
+        final delay = scheduledTarget.difference(now);
+        // Schedule if due within next 7 days
+        if (delay.inDays < 7) {
+          _webTimers[task.id!] = Timer(delay, () async {
+            await showInstantNotification(
+              title: '📌 Task Reminder: ${task.title}',
+              body: bodyText,
+              sound: sound,
+            );
+          });
+        }
+        return;
+      }
+
+      // NATIVE PLATFORM SCHEDULING (Android/iOS)
       final tzDateTime = tz.TZDateTime(
         tz.local,
         scheduledTarget.year,
@@ -230,7 +270,6 @@ class NotificationService {
         body: bodyText,
       );
 
-      // Try exact scheduling first; fallback to inexact if exact alarm is restricted
       try {
         await _notificationsPlugin.zonedSchedule(
           id: task.id!,
@@ -260,6 +299,11 @@ class NotificationService {
 
   Future<void> cancelTaskNotification(int taskId) async {
     try {
+      if (kIsWeb) {
+        _webTimers[taskId]?.cancel();
+        _webTimers.remove(taskId);
+        return;
+      }
       await _notificationsPlugin.cancel(id: taskId);
     } catch (e) {
       debugPrint('Error cancelling notification: $e');
@@ -268,6 +312,13 @@ class NotificationService {
 
   Future<void> cancelAllNotifications() async {
     try {
+      if (kIsWeb) {
+        for (final timer in _webTimers.values) {
+          timer.cancel();
+        }
+        _webTimers.clear();
+        return;
+      }
       await _notificationsPlugin.cancelAll();
     } catch (e) {
       debugPrint('Error cancelling all notifications: $e');
@@ -284,6 +335,18 @@ class NotificationService {
         await initialize();
       }
 
+      // Trigger in-app floating banner callback if registered
+      onInAppNotification?.call(title, body);
+
+      // WEB PLATFORM INSTANT NOTIFICATION
+      if (kIsWeb) {
+        return await WebNotificationManager.instance.showNotification(
+          title: title,
+          body: body,
+        );
+      }
+
+      // NATIVE PLATFORM NOTIFICATION
       await requestPermissions();
 
       final details = _getNotificationDetails(

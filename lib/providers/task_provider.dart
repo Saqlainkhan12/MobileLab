@@ -62,6 +62,13 @@ class TaskProvider with ChangeNotifier {
 
     try {
       _tasks = await _dbHelper.getAllTasks();
+      if (kIsWeb) {
+        for (final task in _tasks) {
+          if (!task.isCompleted && task.dueDate.isAfter(DateTime.now())) {
+            _notificationService.scheduleTaskNotification(task);
+          }
+        }
+      }
     } catch (e) {
       debugPrint('Error loading tasks: $e');
     } finally {

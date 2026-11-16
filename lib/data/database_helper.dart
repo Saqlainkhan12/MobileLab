@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import '../models/task.dart';
 import '../models/subtask.dart';
@@ -8,9 +11,19 @@ class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
 
+  // Web storage keys and memory cache
+  static const String _kWebTasksKey = 'taskflow_web_tasks_storage_v1';
+  static const String _kWebSubtasksKey = 'taskflow_web_subtasks_storage_v1';
+  static const String _kWebIdCounterKey = 'taskflow_web_id_counter_v1';
+  List<Map<String, dynamic>>? _webTasksCache;
+  List<Map<String, dynamic>>? _webSubtasksCache;
+
   DatabaseHelper._init();
 
   Future<Database> get database async {
+    if (kIsWeb) {
+      throw UnsupportedError('SQLite is not used on Flutter Web.');
+    }
     if (_database != null) return _database!;
     _database = await _initDB('task_flow.db');
     return _database!;
@@ -70,9 +83,72 @@ class DatabaseHelper {
     await db.execute('CREATE INDEX idx_subtasks_task_id ON subtasks(task_id);');
   }
 
+  // ==================== WEB STORAGE HELPERS ====================
+
+  Future<void> _ensureWebLoaded() async {
+    if (_webTasksCache != null && _webSubtasksCache != null) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final tasksJson = prefs.getString(_kWebTasksKey);
+    if (tasksJson != null) {
+      try {
+        final decoded = jsonDecode(tasksJson) as List<dynamic>;
+        _webTasksCache = decoded.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      } catch (_) {
+        _webTasksCache = [];
+      }
+    } else {
+      _webTasksCache = [];
+    }
+
+    final subtasksJson = prefs.getString(_kWebSubtasksKey);
+    if (subtasksJson != null) {
+      try {
+        final decoded = jsonDecode(subtasksJson) as List<dynamic>;
+        _webSubtasksCache = decoded.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      } catch (_) {
+        _webSubtasksCache = [];
+      }
+    } else {
+      _webSubtasksCache = [];
+    }
+  }
+
+  Future<void> _saveWebState() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kWebTasksKey, jsonEncode(_webTasksCache ?? []));
+    await prefs.setString(_kWebSubtasksKey, jsonEncode(_webSubtasksCache ?? []));
+  }
+
   // ==================== TASK OPERATIONS ====================
 
   Future<int> insertTask(Task task) async {
+    if (kIsWeb) {
+      await _ensureWebLoaded();
+      final prefs = await SharedPreferences.getInstance();
+      int nextId = (prefs.getInt(_kWebIdCounterKey) ?? 0) + 1;
+
+      for (final t in _webTasksCache!) {
+        final existingId = t['id'] as int?;
+        if (existingId != null && existingId >= nextId) {
+          nextId = existingId + 1;
+        }
+      }
+      await prefs.setInt(_kWebIdCounterKey, nextId);
+
+      final taskMap = task.toMap();
+      taskMap['id'] = nextId;
+      _webTasksCache!.add(taskMap);
+
+      for (final subtask in task.subtasks) {
+        final stMap = subtask.copyWith(taskId: nextId).toMap();
+        _webSubtasksCache!.add(stMap);
+      }
+
+      await _saveWebState();
+      return nextId;
+    }
+
     final db = await database;
     return await db.transaction((txn) async {
       final taskId = await txn.insert('tasks', task.toMap());
@@ -85,9 +161,31 @@ class DatabaseHelper {
   }
 
   Future<int> updateTask(Task task) async {
-    final db = await database;
     if (task.id == null) return 0;
 
+    if (kIsWeb) {
+      await _ensureWebLoaded();
+      final index = _webTasksCache!.indexWhere((t) => t['id'] == task.id);
+      if (index != -1) {
+        final updatedMap = task.toMap();
+        updatedMap['id'] = task.id;
+        updatedMap['updated_at'] = DateTime.now().toIso8601String();
+        _webTasksCache![index] = updatedMap;
+
+        // Refresh subtasks for this task
+        _webSubtasksCache!.removeWhere((s) => s['task_id'] == task.id);
+        for (final subtask in task.subtasks) {
+          final stMap = subtask.copyWith(taskId: task.id).toMap();
+          _webSubtasksCache!.add(stMap);
+        }
+
+        await _saveWebState();
+        return 1;
+      }
+      return 0;
+    }
+
+    final db = await database;
     return await db.transaction((txn) async {
       final rows = await txn.update(
         'tasks',
@@ -107,11 +205,27 @@ class DatabaseHelper {
   }
 
   Future<int> deleteTask(int id) async {
+    if (kIsWeb) {
+      await _ensureWebLoaded();
+      _webTasksCache!.removeWhere((t) => t['id'] == id);
+      _webSubtasksCache!.removeWhere((s) => s['task_id'] == id);
+      await _saveWebState();
+      return 1;
+    }
+
     final db = await database;
     return await db.delete('tasks', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<Task?> getTaskById(int id) async {
+    if (kIsWeb) {
+      await _ensureWebLoaded();
+      final matches = _webTasksCache!.where((t) => t['id'] == id).toList();
+      if (matches.isEmpty) return null;
+      final subtasks = await getSubtasksForTask(id);
+      return Task.fromMap(matches.first, subtasks: subtasks);
+    }
+
     final db = await database;
     final taskMaps = await db.query('tasks', where: 'id = ?', whereArgs: [id]);
     if (taskMaps.isEmpty) return null;
@@ -121,12 +235,30 @@ class DatabaseHelper {
   }
 
   Future<List<Task>> getAllTasks() async {
+    if (kIsWeb) {
+      await _ensureWebLoaded();
+      final sortedMaps = List<Map<String, dynamic>>.from(_webTasksCache!);
+      sortedMaps.sort((a, b) {
+        final dateA = DateTime.tryParse(a['due_date'] as String? ?? '') ?? DateTime.now();
+        final dateB = DateTime.tryParse(b['due_date'] as String? ?? '') ?? DateTime.now();
+        final comp = dateA.compareTo(dateB);
+        if (comp != 0) return comp;
+        return (b['priority'] as String? ?? '').compareTo(a['priority'] as String? ?? '');
+      });
+      return await _populateTasksWithSubtasks(sortedMaps);
+    }
+
     final db = await database;
     final taskMaps = await db.query('tasks', orderBy: 'due_date ASC, priority DESC');
     return await _populateTasksWithSubtasks(taskMaps);
   }
 
   Future<List<Task>> getTodayTasks() async {
+    if (kIsWeb) {
+      final all = await getAllTasks();
+      return all.where((t) => t.isDueToday).toList();
+    }
+
     final db = await database;
     final now = DateTime.now();
     final startOfDay = DateTime(now.year, now.month, now.day).toIso8601String();
@@ -142,6 +274,11 @@ class DatabaseHelper {
   }
 
   Future<List<Task>> getCompletedTasks() async {
+    if (kIsWeb) {
+      final all = await getAllTasks();
+      return all.where((t) => t.isCompleted).toList();
+    }
+
     final db = await database;
     final taskMaps = await db.query(
       'tasks',
@@ -152,6 +289,11 @@ class DatabaseHelper {
   }
 
   Future<List<Task>> getRepeatedTasks() async {
+    if (kIsWeb) {
+      final all = await getAllTasks();
+      return all.where((t) => t.isRepeated).toList();
+    }
+
     final db = await database;
     final taskMaps = await db.query(
       'tasks',
@@ -163,18 +305,11 @@ class DatabaseHelper {
 
   Future<List<Task>> _populateTasksWithSubtasks(List<Map<String, dynamic>> taskMaps) async {
     if (taskMaps.isEmpty) return [];
-    final db = await database;
 
     final tasks = <Task>[];
     for (final map in taskMaps) {
       final taskId = map['id'] as int;
-      final subtaskMaps = await db.query(
-        'subtasks',
-        where: 'task_id = ?',
-        whereArgs: [taskId],
-        orderBy: 'created_at ASC',
-      );
-      final subtasks = subtaskMaps.map((s) => Subtask.fromMap(s)).toList();
+      final subtasks = await getSubtasksForTask(taskId);
       tasks.add(Task.fromMap(map, subtasks: subtasks));
     }
     return tasks;
@@ -183,6 +318,16 @@ class DatabaseHelper {
   // ==================== SUBTASK OPERATIONS ====================
 
   Future<List<Subtask>> getSubtasksForTask(int taskId) async {
+    if (kIsWeb) {
+      await _ensureWebLoaded();
+      final matches = _webSubtasksCache!
+          .where((s) => s['task_id'] == taskId)
+          .map((s) => Subtask.fromMap(s))
+          .toList();
+      matches.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      return matches;
+    }
+
     final db = await database;
     final subtaskMaps = await db.query(
       'subtasks',
@@ -194,6 +339,17 @@ class DatabaseHelper {
   }
 
   Future<int> updateSubtaskStatus(String subtaskId, bool isCompleted) async {
+    if (kIsWeb) {
+      await _ensureWebLoaded();
+      final index = _webSubtasksCache!.indexWhere((s) => s['id'] == subtaskId);
+      if (index != -1) {
+        _webSubtasksCache![index]['is_completed'] = isCompleted ? 1 : 0;
+        await _saveWebState();
+        return 1;
+      }
+      return 0;
+    }
+
     final db = await database;
     return await db.update(
       'subtasks',
@@ -204,8 +360,8 @@ class DatabaseHelper {
   }
 
   Future<void> close() async {
+    if (kIsWeb) return;
     final db = await database;
     await db.close();
   }
 }
-

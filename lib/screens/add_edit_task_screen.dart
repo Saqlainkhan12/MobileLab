@@ -134,7 +134,36 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
   }
 
   Future<void> _saveTask() async {
-    if (!_formKey.currentState!.validate()) return;
+    // Auto-commit any subtask typed into the input field
+    final pendingSubtask = _subtaskController.text.trim();
+    if (pendingSubtask.isNotEmpty) {
+      setState(() {
+        _subtasks.add(Subtask(title: pendingSubtask));
+        _subtaskController.clear();
+      });
+    }
+
+    if (!_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.amber.shade900,
+          content: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Task Title is required! Please enter title at the top.',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
 
     final dueDateTime = DateTime(
       _selectedDueDate.year,
@@ -162,31 +191,73 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
 
     final taskProvider = context.read<TaskProvider>();
     if (widget.taskToEdit == null) {
-      await taskProvider.addTask(
+      final newId = await taskProvider.addTask(
         task,
         sound: settings.notificationSound,
         reminderMinutes: settings.reminderMinutesBefore,
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Task created successfully!')),
-        );
+      if (newId != -1) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Color(0xFF10B981),
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle_rounded, color: Colors.white),
+                  SizedBox(width: 10),
+                  Text('Task created successfully!'),
+                ],
+              ),
+            ),
+          );
+          Navigator.of(context).pop();
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.redAccent,
+              content: Text('Failed to save task. Please try again.'),
+            ),
+          );
+        }
       }
     } else {
-      await taskProvider.updateTask(
+      final rows = await taskProvider.updateTask(
         task,
         sound: settings.notificationSound,
         reminderMinutes: settings.reminderMinutesBefore,
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Task updated successfully!')),
-        );
+      if (rows > 0) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Color(0xFF10B981),
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle_rounded, color: Colors.white),
+                  SizedBox(width: 10),
+                  Text('Task updated successfully!'),
+                ],
+              ),
+            ),
+          );
+          Navigator.of(context).pop();
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.redAccent,
+              content: Text('Failed to update task.'),
+            ),
+          );
+        }
       }
-    }
-
-    if (mounted) {
-      Navigator.of(context).pop();
     }
   }
 
